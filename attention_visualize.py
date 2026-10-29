@@ -22,7 +22,7 @@ def wrapped_output(text):
     )
 
 
-def attention_viewer(generated_text, prompt_length, attention_steps, n_layers, n_heads):
+def attention_viewer(tokens, prompt_length, attention_steps, n_layers, n_heads, separator=""):
     viewer_id = "attention-viewer-" + uuid.uuid4().hex
     layer_options = "".join(
         f'<option value="{i}">Layer {i + 1}</option>' for i in range(n_layers)
@@ -31,31 +31,29 @@ def attention_viewer(generated_text, prompt_length, attention_steps, n_layers, n
         f'<option value="{i}">Head {i + 1}</option>' for i in range(n_heads)
     )
 
-    characters = []
-    for index, character in enumerate(generated_text):
-        if character == "\n":
+    rendered_tokens = []
+    for index, token in enumerate(tokens):
+        if token == "\n":
             label = "↵"
-            line_break = "<br>"
-        elif character == "\t":
+        elif token == "\t":
             label = "⇥"
-            line_break = ""
-        elif character == " ":
+        elif token == " ":
             label = "&nbsp;"
-            line_break = ""
         else:
-            label = html.escape(character)
-            line_break = ""
+            label = html.escape(token)
 
         generated = index >= prompt_length
         step_attribute = f' data-step="{index - prompt_length}"' if generated else ""
         token_class = "attn-token generated" if generated else "attn-token prompt"
         tabindex = ' tabindex="0"' if generated else ""
-        characters.append(
+        rendered_tokens.append(
             f'<span class="{token_class}" data-index="{index}"{step_attribute}'
             f"{tabindex}>"
             f'<span class="char">{label}</span><span class="dots" aria-hidden="true"></span>'
-            f'</span>{line_break}'
+            '</span>'
         )
+
+    separator_html = html.escape(separator).replace("\n", "<br>").replace(" ", "&nbsp;")
 
     styles = r"""
     #__ID__ { font-family: system-ui, sans-serif; color: inherit; }
@@ -85,9 +83,9 @@ def attention_viewer(generated_text, prompt_length, attention_steps, n_layers, n
         f'<label>Heads <select class="head-select">{head_options}</select></label>'
         '</div>'
         '<div class="status">Loading attention viewer…</div>'
-        f'<div class="text">{"".join(characters)}</div>'
+        f'<div class="text">{separator_html.join(rendered_tokens)}</div>'
         '<div class="legend"></div>'
-        '<div class="hint">Hover or focus a generated character to see attention used to predict it. '
+        '<div class="hint">Hover or focus a generated token to see attention used to predict it. '
         'Dots appear for probabilities of at least 2%; opacity is relative to the strongest '
         'position within each head. Hover a dot for its probability.</div>'
         '</div>'
@@ -146,7 +144,7 @@ def attention_viewer(generated_text, prompt_length, attention_steps, n_layers, n
         }
         function render() {
             if (selectedStep < 0) {
-                status.textContent = 'No generated characters to inspect.';
+                status.textContent = 'No generated tokens to inspect.';
                 return;
             }
             for (const index of marked) {
@@ -174,7 +172,7 @@ def attention_viewer(generated_text, prompt_length, attention_steps, n_layers, n
             }
             const selectedIndex = __PROMPT_LENGTH__ + selectedStep;
             const selectedToken = tokens[selectedIndex];
-            status.textContent = `Attention used to predict character ${selectedStep + 1} of ${steps.length}`;
+            status.textContent = `Attention used to predict token ${selectedStep + 1} of ${steps.length}`;
             root.querySelector('.attn-token.selected')?.classList.remove('selected');
             selectedToken.classList.add('selected');
         }
