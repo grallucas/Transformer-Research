@@ -1122,12 +1122,15 @@ def generate(
 ### SAVING AND LOADING MODELS ###
 #################################
 
-import dill
+try:
+    import dill
 
-def save_model(params, adam_state, encode, decode, filename="model.pkl"):
-    with open(filename, "wb") as f:
-        dill.dump((params, adam_state, encode, decode), f)
+    def save_model(params, adam_state, encode, decode, filename="model.dill"):
+        with open(filename, "wb") as f:
+            dill.dump((params, adam_state, encode, decode), f)
 
-def load_model(filename="model.pkl"):
-    with open(filename, "rb") as f:
-        return dill.load(f)
+    def load_model(filename="model.dill"):
+        with open(filename, "rb") as f:
+            return dill.load(f)
+except ImportError:
+    print("Warning: dill module not found. Model saving and loading will not be available.")
